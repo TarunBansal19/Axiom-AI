@@ -57,10 +57,9 @@ export async function extractYoutube(inputUri: string): Promise<ExtractionResult
       throw new Error("Transcript parsed but no text segments found");
     }
   } catch (err) {
-    console.warn(
-      `Could not fetch YouTube transcript via yt-dlp for ${videoId}:`,
-      (err as Error).message
-    );
+    const errMsg = (err as Error).message || String(err);
+    console.error(`[YouTube Extractor] yt-dlp FAILED for ${videoId}:`, errMsg);
+    console.error(`[YouTube Extractor] Full error:`, err);
     transcriptItems = [
       {
         text: `YouTube Video (${videoId}) transcript content.`,

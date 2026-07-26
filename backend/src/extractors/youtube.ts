@@ -1,4 +1,4 @@
-import { YoutubeTranscript } from "youtube-transcript";
+import youtubedl from "youtube-dl-exec";
 import type { ExtractionResult, ExtractedSegment } from "./pdf";
 
 export function extractYoutubeId(input: string): string {
@@ -14,14 +14,43 @@ export async function extractYoutube(inputUri: string): Promise<ExtractionResult
   let transcriptItems: Array<{ text: string; offset: number; duration: number }> = [];
 
   try {
-    const rawItems = await YoutubeTranscript.fetchTranscript(videoId);
-    transcriptItems = rawItems.map((item) => ({
-      text: item.text,
-      offset: item.offset / 1000,
-      duration: item.duration / 1000,
-    }));
+    const res = await youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
+      dumpJson: true,
+      skipDownload: true,
+    });
+
+    const captions = res.automatic_captions || res.subtitles;
+    if (!captions) throw new Error("No captions found for this video");
+
+    // Prefer English, fallback to first available language
+    const langKey = "en" in captions ? "en" : ("en-US" in captions ? "en-US" : Object.keys(captions)[0]);
+    if (!langKey || !captions[langKey]) throw new Error("No caption language available");
+    
+    const captionSet = captions[langKey];
+    const json3Url = captionSet.find((c: any) => c.ext === "json3")?.url;
+    if (!json3Url) throw new Error("No JSON3 transcript format found");
+
+    const transcriptRes = await fetch(json3Url);
+    const json3Data = await transcriptRes.json();
+
+    if (json3Data.events) {
+      for (const event of json3Data.events) {
+        if (!event.segs) continue;
+        const text = event.segs.map((s: any) => s.utf8).join("").replace(/\n/g, " ").trim();
+        if (!text) continue;
+        transcriptItems.push({
+          text,
+          offset: (event.tStartMs || 0) / 1000,
+          duration: (event.dDurationMs || 0) / 1000,
+        });
+      }
+    }
+    
+    if (transcriptItems.length === 0) {
+      throw new Error("Transcript parsed but no text segments found");
+    }
   } catch (err) {
-    console.warn(`Could not fetch live YouTube transcript for ${videoId}, generating fallback structure:`, (err as Error).message);
+    console.warn(`Could not fetch live YouTube transcript via yt-dlp for ${videoId}, generating fallback structure:`, (err as Error).message);
     transcriptItems = [
       {
         text: `YouTube Video (${videoId}) transcript content.`,

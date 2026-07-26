@@ -15,7 +15,7 @@ import { generateMindMap, getMindMaps, deleteMindMap } from "./mindmap";
 import { generateRoadmap, getRoadmaps, updateRoadmapStage, deleteRoadmap } from "./roadmap";
 import { fetchPlaylistMetadata } from "./youtube";
 import { generateOverview, getOverview } from "./overview";
-import { clerkMiddleware, requireAuth } from "@clerk/express";
+import { clerkMiddleware, getAuth } from "@clerk/express";
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -25,7 +25,13 @@ app.use(express.json());
 app.use(clerkMiddleware());
 
 // Protect all /api routes
-app.use('/api', requireAuth());
+app.use('/api', (req, res, next) => {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+});
 
 initQueue().catch(() => {});
 
@@ -40,7 +46,7 @@ async function getDefaultNotebookId(userId: string): Promise<string> {
 // 1. POST /notebooks
 app.post("/api/notebooks", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
     const { name, title } = req.body;
     const notebookName = name || title;
     if (!notebookName || typeof notebookName !== "string") {
@@ -62,7 +68,7 @@ app.post("/api/notebooks", async (req: Request, res: Response) => {
 // 2. GET /notebooks
 app.get("/api/notebooks", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
     const notebooks = await db.notebook.findMany({
       where: { ownerId: userId },
       orderBy: { createdAt: "desc" },
@@ -80,7 +86,7 @@ app.get("/api/notebooks", async (req: Request, res: Response) => {
 app.get("/api/notebooks/:id", async (req: Request, res: Response) => {
   try {
     const id = req.params.id || "";
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
     const notebook = await db.notebook.findUnique({
       where: { id },
       include: {
@@ -104,7 +110,7 @@ app.get("/api/notebooks/:id", async (req: Request, res: Response) => {
 app.put("/api/notebooks/:id", async (req: Request, res: Response) => {
   try {
     const id = req.params.id || "";
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
     const existing = await db.notebook.findUnique({ where: { id } });
     if (!existing || existing.ownerId !== userId) {
       return res.status(404).json({ error: "Notebook not found" });
@@ -127,7 +133,7 @@ app.put("/api/notebooks/:id", async (req: Request, res: Response) => {
 app.delete("/api/notebooks/:id", async (req: Request, res: Response) => {
   try {
     const id = req.params.id || "";
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
     const existing = await db.notebook.findUnique({ where: { id } });
     if (!existing || existing.ownerId !== userId) {
       return res.status(404).json({ error: "Notebook not found" });
@@ -144,7 +150,7 @@ app.delete("/api/notebooks/:id", async (req: Request, res: Response) => {
 const handleSourceCreation = async (req: Request, res: Response) => {
   try {
     let { notebookId, type, originalUri, title, textContent, content, metadata } = req.body;
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
 
     if (!notebookId) {
       notebookId = await getDefaultNotebookId(userId);
@@ -325,7 +331,7 @@ app.post("/api/sources/:id/reindex", async (req: Request, res: Response) => {
 // 8. POST /query
 app.post("/api/query", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).auth.userId;
+    const userId = getAuth(req).userId as string;
     let { notebookId, question, query } = req.body;
     const finalQuestion = question || query;
 

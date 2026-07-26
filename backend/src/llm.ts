@@ -47,6 +47,26 @@ export async function getEmbedding(text: string): Promise<number[]> {
   return createDeterministicEmbedding(text);
 }
 
+export async function getEmbeddings(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  if (openaiClient) {
+    try {
+      const response = await openaiClient.embeddings.create({
+        model: "text-embedding-3-small",
+        input: texts,
+      });
+      // Ensure the returned array matches the input order by sorting based on index
+      const sortedData = response.data.sort((a, b) => a.index - b.index);
+      return sortedData.map(d => d.embedding);
+    } catch (err) {
+      console.warn("OpenAI batch embedding call failed, falling back:", (err as Error).message);
+    }
+  }
+
+  // Fallback deterministic embeddings for local dev/test when key is not set
+  return texts.map(t => createDeterministicEmbedding(t));
+}
+
 export async function generateText(
   prompt: string,
   systemInstruction?: string,

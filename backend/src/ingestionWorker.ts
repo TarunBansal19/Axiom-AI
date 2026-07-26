@@ -7,7 +7,7 @@ import { extractUrl } from "./extractors/url";
 import { extractYoutube } from "./extractors/youtube";
 import { extractVtt } from "./extractors/vtt";
 import { createChunks } from "./chunker";
-import { getEmbedding } from "./llm";
+import { getEmbedding, getEmbeddings } from "./llm";
 import { upsertChunkVectors, deleteChunksBySourceId } from "./qdrant";
 import crypto from "crypto";
 
@@ -87,33 +87,41 @@ export async function processSourceIngestion(sourceId: string): Promise<void> {
     // Generate embeddings and store in Postgres & Qdrant
     const qdrantPoints: Array<{ id: string; vector: number[]; payload: any }> = [];
 
-    for (const prepared of preparedChunks) {
-      const chunkId = crypto.randomUUID();
-      const cleanText = prepared.text.replace(/\u0000/g, "");
-      const vector = await getEmbedding(cleanText);
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < preparedChunks.length; i += BATCH_SIZE) {
+      const batch = preparedChunks.slice(i, i + BATCH_SIZE);
+      const cleanTexts = batch.map(p => p.text.replace(/\u0000/g, ""));
+      const vectors = await getEmbeddings(cleanTexts);
 
-      await db.chunk.create({
-        data: {
+      const dbData = batch.map((prepared, index) => {
+        const chunkId = crypto.randomUUID();
+        const cleanText = cleanTexts[index] as string;
+        const vector = vectors[index] as number[];
+
+        qdrantPoints.push({
+          id: chunkId,
+          vector,
+          payload: {
+            notebook_id: source.notebookId,
+            source_id: sourceId,
+            chunk_index: prepared.chunkIndex,
+          }
+        });
+
+        return {
           id: chunkId,
           sourceId,
           notebookId: source.notebookId,
           text: cleanText,
           chunkIndex: prepared.chunkIndex,
           location: JSON.stringify(prepared.location),
-        },
+        };
       });
 
-      qdrantPoints.push({
-        id: chunkId,
-        vector,
-        payload: {
-          notebook_id: source.notebookId,
-          source_id: sourceId,
-        },
+      await db.chunk.createMany({
+        data: dbData
       });
-    }
-
-    // Synchronously upsert vectors to Qdrant
+    }// Synchronously upsert vectors to Qdrant
     await upsertChunkVectors(qdrantPoints);
 
     // Stage 4: READY

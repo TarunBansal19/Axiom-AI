@@ -29,6 +29,15 @@ export async function ensureCollection(): Promise<void> {
         distance: "Cosine",
       },
     });
+    // Create payload indexes required for filtering
+    await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
+      field_name: "source_id",
+      field_schema: "keyword",
+    });
+    await qdrantClient.createPayloadIndex(COLLECTION_NAME, {
+      field_name: "notebook_id",
+      field_schema: "keyword",
+    });
   }
 }
 

@@ -27,11 +27,11 @@ AxiomAI is a powerful, AI-driven learning and research workspace. By combining a
 
 ### Backend
 - **Server**: Node.js + Express + TypeScript
-- **Database (Relational)**: PostgreSQL via Prisma (optimized for Neon)
+- **Database (Relational)**: Neon Serverless PostgreSQL via Prisma ORM
 - **Database (Vector)**: Qdrant (for fast semantic search)
 - **Queue & Workers**: BullMQ + Redis (for asynchronous document processing)
 - **Blob Storage**: Amazon S3 (`@aws-sdk/client-s3`)
-- **AI / LLM**: Google Gemini (`@google/genai` for embeddings and generation)
+- **AI / LLM**: OpenAI (`openai` for LLM and Embeddings)
 - **Auth**: `@clerk/express`
 
 ---
@@ -72,7 +72,7 @@ QDRANT_API_KEY=""
 
 # API Keys
 YOUTUBE_API_KEY="your_youtube_api_key"
-AICREDITS_API_KEY="your_gemini_api_key" # Or Google AI Key depending on config
+OPENAI_API_KEY="your_openai_api_key"
 
 # AWS S3 Blob Storage
 AWS_ACCESS_KEY_ID="your_aws_access_key"

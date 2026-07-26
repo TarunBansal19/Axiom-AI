@@ -134,11 +134,14 @@ app.delete("/api/notebooks/:id", async (req: Request, res: Response) => {
   try {
     const id = req.params.id || "";
     const userId = getAuth(req).userId as string;
-    const existing = await db.notebook.findUnique({ where: { id } });
+    const existing = await db.notebook.findUnique({ where: { id }, include: { sources: true } });
     if (!existing || existing.ownerId !== userId) {
       return res.status(404).json({ error: "Notebook not found" });
     }
-    // Note: Prisma cascade delete will remove associated sources/chunks/etc
+    // Delete all Qdrant vectors for each source before cascade deleting from DB
+    for (const source of existing.sources) {
+      try { await deleteChunksBySourceId(source.id); } catch (_) {}
+    }
     await db.notebook.delete({ where: { id } });
     return res.json({ success: true });
   } catch (err) {
@@ -286,9 +289,14 @@ app.put("/api/sources/:id", async (req: Request, res: Response) => {
 app.delete("/api/sources/:id", async (req: Request, res: Response) => {
   try {
     const id = req.params.id || "";
-    const source = await db.source.findUnique({ where: { id } });
+    const userId = getAuth(req).userId as string;
+    const source = await db.source.findUnique({ where: { id }, include: { notebook: true } });
     if (!source) {
       return res.status(404).json({ error: "Source not found" });
+    }
+    // Auth check: ensure user owns the notebook this source belongs to
+    if ((source as any).notebook?.ownerId !== userId) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     await db.chunk.deleteMany({ where: { sourceId: id } });

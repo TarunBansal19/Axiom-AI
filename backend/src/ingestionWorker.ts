@@ -134,26 +134,15 @@ export async function processSourceIngestion(sourceId: string): Promise<void> {
       },
     });
 
-    // Overview Generation Trigger
+    // Overview Generation Trigger: always regenerate so adding new sources updates the summary
     try {
       const { generateOverview } = await import("./overview");
-      // Check if an overview already exists for this notebook
-      const existingOverview = await db.notebookOverview.findUnique({
-        where: { notebookId: source.notebookId }
+      // Fetch ALL ready sources for this notebook (including the one just indexed)
+      const readySources = await db.source.findMany({
+        where: { notebookId: source.notebookId, status: "READY" }
       });
-      
-      // If it's a youtube_playlist, the transcript was saved in rawContentText during ingestion (in server.ts).
-      // We can summarize it.
-      
-      // Only generate automatically if there's no overview yet. (The spec says: "adding the first source to an empty notebook auto-generates")
-      if (!existingOverview) {
-        // Fetch all ready sources for this notebook to include in overview
-        const readySources = await db.source.findMany({
-          where: { notebookId: source.notebookId, status: "READY" }
-        });
-        if (readySources.length > 0) {
-           await generateOverview(source.notebookId, readySources.map(s => s.id));
-        }
+      if (readySources.length > 0) {
+        await generateOverview(source.notebookId, readySources.map(s => s.id));
       }
     } catch (overviewErr) {
       console.warn("Failed to generate notebook overview after ingestion:", overviewErr);

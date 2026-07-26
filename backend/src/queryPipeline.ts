@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { getEmbedding, generateText } from "./llm";
+import { generateText } from "./llm";
 import { searchNotebookChunks } from "./qdrant";
 
 export interface Citation {
@@ -60,10 +60,12 @@ export async function runQueryPipeline(notebookId: string, question: string): Pr
 
     const candidateMap = new Map<string, number>();
 
+    // Batch all 4 embeddings in a single API call instead of 4 separate calls
+    const { getEmbeddings } = await import("./llm");
+    const queryVectors = await getEmbeddings(targetSearchQueries);
     await Promise.all(
-      targetSearchQueries.map(async (qText) => {
-        const qVec = await getEmbedding(qText);
-        const searchRes = await searchNotebookChunks(notebookId, qVec, 6);
+      queryVectors.map(async (qVec) => {
+        const searchRes = await searchNotebookChunks(notebookId, qVec, 8);
         for (const res of searchRes) {
           const existingScore = candidateMap.get(res.id) || 0;
           candidateMap.set(res.id, Math.max(existingScore, res.score));
@@ -113,7 +115,18 @@ export async function runQueryPipeline(notebookId: string, question: string): Pr
     }));
 
     populatedCandidates.sort((a, b) => b.score - a.score);
-    const topK = populatedCandidates.slice(0, 5);
+
+    // Ensure multi-source fairness: take top 3 chunks per source, then up to 12 total
+    const chunksBySource = new Map<string, typeof populatedCandidates>();
+    for (const c of populatedCandidates) {
+      if (!chunksBySource.has(c.sourceId)) chunksBySource.set(c.sourceId, []);
+      const arr = chunksBySource.get(c.sourceId)!;
+      if (arr.length < 3) arr.push(c);
+    }
+    const topK = Array.from(chunksBySource.values())
+      .flat()
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12);
 
     const contextPrompt = topK
       .map((c) => `--- CHUNK [ID: ${c.id} | Source: "${c.sourceTitle}"] ---\n${c.text}`)

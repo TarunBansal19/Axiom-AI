@@ -6,7 +6,7 @@ import multer from "multer";
 import { db } from "./db";
 import { putFile, getFile, deleteFile } from "./storage";
 import { addIngestionJob, initQueue } from "./queue";
-import { processSourceIngestion } from "./ingestionWorker";
+import { processSourceIngestion, ingestionWorker } from "./ingestionWorker";
 import { runQueryPipeline } from "./queryPipeline";
 import { deleteChunksBySourceId } from "./qdrant";
 import { generateFlashcardDeck, getFlashcardDecks, deleteFlashcardDeck, explainFlashcard } from "./flashcards";
@@ -677,4 +677,5 @@ app.get("*", (req: Request, res: Response) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`AxiomAI server running on http://localhost:${PORT}`);
+  console.log(`Ingestion worker running in-process (worker name: ${ingestionWorker.name})`);
 });

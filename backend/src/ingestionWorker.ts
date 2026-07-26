@@ -170,18 +170,3 @@ export async function processSourceIngestion(sourceId: string): Promise<void> {
     console.error(`Source ingestion failed for ${sourceId}:`, errorMsg);
   }
 }
-
-import { Worker } from "bullmq";
-import { QUEUE_NAME, redisConfig } from "./queue";
-
-export const ingestionWorker = new Worker(
-  QUEUE_NAME,
-  async (job) => {
-    console.log(`Processing ingestion job ${job.id} for source ${job.data.sourceId}...`);
-    await processSourceIngestion(job.data.sourceId);
-  },
-  { connection: redisConfig }
-);
-
-console.log(`BullMQ ingestion worker initialized on queue '${QUEUE_NAME}'`);
-

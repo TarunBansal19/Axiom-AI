@@ -1,4 +1,4 @@
-import youtubedl from "youtube-dl-exec";
+import { Innertube } from "youtubei.js";
 import type { ExtractionResult, ExtractedSegment } from "./pdf";
 
 export function extractYoutubeId(input: string): string {
@@ -14,29 +14,36 @@ export async function extractYoutube(inputUri: string): Promise<ExtractionResult
   let transcriptItems: Array<{ text: string; offset: number; duration: number }> = [];
 
   try {
-    const res = await youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
-      dumpJson: true,
-      skipDownload: true,
-    });
+    const yt = await Innertube.create({ generate_session_locally: true });
+    const info = await yt.getInfo(videoId);
+    const captionTracks = info.captions?.caption_tracks;
 
-    const captions = res.automatic_captions || res.subtitles;
-    if (!captions) throw new Error("No captions found for this video");
+    if (!captionTracks || captionTracks.length === 0) {
+      throw new Error(`No caption tracks found for video ${videoId}`);
+    }
 
-    // Prefer English, fallback to first available language
-    const langKey = "en" in captions ? "en" : ("en-US" in captions ? "en-US" : Object.keys(captions)[0]);
-    if (!langKey || !captions[langKey]) throw new Error("No caption language available");
-    
-    const captionSet = captions[langKey];
-    const json3Url = captionSet.find((c: any) => c.ext === "json3")?.url;
-    if (!json3Url) throw new Error("No JSON3 transcript format found");
+    // Prefer English, otherwise first available
+    const track =
+      captionTracks.find((t: any) => t.language_code === "en") ||
+      captionTracks.find((t: any) => t.language_code === "en-US") ||
+      captionTracks[0];
 
-    const transcriptRes = await fetch(json3Url);
-    const json3Data = await transcriptRes.json();
+    if (!track?.base_url) {
+      throw new Error("Caption track has no base_url");
+    }
+
+    // Fetch JSON3 format (structured with timestamps)
+    const json3Res = await fetch(track.base_url + "&fmt=json3");
+    const json3Data: any = await json3Res.json();
 
     if (json3Data.events) {
       for (const event of json3Data.events) {
         if (!event.segs) continue;
-        const text = event.segs.map((s: any) => s.utf8).join("").replace(/\n/g, " ").trim();
+        const text = event.segs
+          .map((s: any) => s.utf8 ?? "")
+          .join("")
+          .replace(/\n/g, " ")
+          .trim();
         if (!text) continue;
         transcriptItems.push({
           text,
@@ -45,12 +52,15 @@ export async function extractYoutube(inputUri: string): Promise<ExtractionResult
         });
       }
     }
-    
+
     if (transcriptItems.length === 0) {
       throw new Error("Transcript parsed but no text segments found");
     }
   } catch (err) {
-    console.warn(`Could not fetch live YouTube transcript via yt-dlp for ${videoId}, generating fallback structure:`, (err as Error).message);
+    console.warn(
+      `Could not fetch YouTube transcript for ${videoId}:`,
+      (err as Error).message
+    );
     transcriptItems = [
       {
         text: `YouTube Video (${videoId}) transcript content.`,

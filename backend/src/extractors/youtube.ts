@@ -1,4 +1,3 @@
-import youtubedl from "youtube-dl-exec";
 import type { ExtractionResult, ExtractedSegment } from "./pdf";
 
 export function extractYoutubeId(input: string): string {
@@ -9,57 +8,48 @@ export function extractYoutubeId(input: string): string {
   return (match && match[1]) ? match[1] : input.trim();
 }
 
+/**
+ * Fetch transcript via Supadata API.
+ * Requires SUPADATA_API_KEY env var.
+ * Free tier: 100 transcripts/month. https://supadata.ai
+ */
+async function fetchTranscriptSupadata(
+  videoId: string
+): Promise<Array<{ text: string; offset: number; duration: number }>> {
+  const apiKey = process.env.SUPADATA_API_KEY;
+  if (!apiKey) throw new Error("SUPADATA_API_KEY not set");
+
+  const url = `https://api.supadata.ai/v1/youtube/transcript?url=https://www.youtube.com/watch?v=${videoId}&lang=en&text=false`;
+  const res = await fetch(url, {
+    headers: { "x-api-key": apiKey },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Supadata API error ${res.status}: ${body}`);
+  }
+
+  const data: any = await res.json();
+  const content: any[] = data.content || [];
+  return content.map((item: any) => ({
+    text: item.text,
+    offset: (item.offset ?? 0) / 1000,   // Supadata returns ms
+    duration: (item.duration ?? 0) / 1000,
+  }));
+}
+
 export async function extractYoutube(inputUri: string): Promise<ExtractionResult> {
   const videoId = extractYoutubeId(inputUri);
   let transcriptItems: Array<{ text: string; offset: number; duration: number }> = [];
 
   try {
-    const res = await youtubedl(`https://www.youtube.com/watch?v=${videoId}`, {
-      dumpJson: true,
-      skipDownload: true,
-      noWarnings: true,
-    });
-
-    const captions = (res as any).automatic_captions || (res as any).subtitles;
-    if (!captions || Object.keys(captions).length === 0) {
-      throw new Error("No captions found for this video");
-    }
-
-    // Prefer English, fallback to first available language
-    const langKey = "en" in captions ? "en" : ("en-US" in captions ? "en-US" : Object.keys(captions)[0]);
-    if (!langKey || !captions[langKey]) throw new Error("No caption language available");
-
-    const captionSet: any[] = captions[langKey];
-    const json3Url = captionSet.find((c: any) => c.ext === "json3")?.url;
-    if (!json3Url) throw new Error("No JSON3 transcript format found");
-
-    const transcriptRes = await fetch(json3Url);
-    const json3Data: any = await transcriptRes.json();
-
-    if (json3Data.events) {
-      for (const event of json3Data.events) {
-        if (!event.segs) continue;
-        const text = event.segs
-          .map((s: any) => s.utf8 ?? "")
-          .join("")
-          .replace(/\n/g, " ")
-          .trim();
-        if (!text) continue;
-        transcriptItems.push({
-          text,
-          offset: (event.tStartMs || 0) / 1000,
-          duration: (event.dDurationMs || 0) / 1000,
-        });
-      }
-    }
-
+    transcriptItems = await fetchTranscriptSupadata(videoId);
     if (transcriptItems.length === 0) {
-      throw new Error("Transcript parsed but no text segments found");
+      throw new Error("Supadata returned an empty transcript");
     }
+    console.log(`[YouTube Extractor] Supadata: extracted ${transcriptItems.length} segments for ${videoId}`);
   } catch (err) {
-    const errMsg = (err as Error).message || String(err);
-    console.error(`[YouTube Extractor] yt-dlp FAILED for ${videoId}:`, errMsg);
-    console.error(`[YouTube Extractor] Full error:`, err);
+    console.error(`[YouTube Extractor] Supadata FAILED for ${videoId}:`, (err as Error).message);
     transcriptItems = [
       {
         text: `YouTube Video (${videoId}) transcript content.`,

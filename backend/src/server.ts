@@ -664,6 +664,22 @@ app.get("/api/notebooks/:notebookId/overview", async (req: Request, res: Respons
   }
 });
 
+// DEBUG: Test YouTube extraction directly (remove after debugging)
+app.get("/api/debug/youtube/:videoId", async (req: Request, res: Response) => {
+  try {
+    const { extractYoutube } = await import("./extractors/youtube");
+    const result = await extractYoutube(`https://www.youtube.com/watch?v=${req.params.videoId}`);
+    return res.json({
+      segmentCount: result.segments.length,
+      firstSegment: result.segments[0]?.text?.slice(0, 200),
+      fullTextSnippet: result.fullText.slice(0, 500),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: (err as Error).message, stack: (err as Error).stack });
+  }
+});
+
+
 // Serve frontend static build if available (must be after all API routes)
 import path from "path";
 const FRONTEND_DIST = path.resolve(process.cwd(), "../frontend/dist");

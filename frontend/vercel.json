@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://YOUR_RENDER_URL_HERE.onrender.com/api/$1"
+      "destination": "https://axiom-ai-v3o0.onrender.com/api/$1"
     }
   ]
 }

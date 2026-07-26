@@ -167,7 +167,7 @@ export async function processSourceIngestion(sourceId: string): Promise<void> {
         statusDetail: errorMsg,
       },
     });
-    console.error(`Source ingestion failed for ${sourceId}:`, errorMsg);
+    console.error(`Source ingestion failed for ${sourceId}:`, err);
   }
 }
 

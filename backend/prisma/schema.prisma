@@ -8,100 +8,100 @@ datasource db {
 }
 
 model Notebook {
-  id             String           @id @default(uuid())
+  id             String            @id @default(uuid())
   name           String
-  isPinned       Boolean          @default(false)
-  ownerId        String           @default("default-user")
-  createdAt      DateTime         @default(now())
-  sources        Source[]
-  queries        Query[]
+  ownerId        String            @default("default-user")
+  createdAt      DateTime          @default(now())
+  isPinned       Boolean           @default(false)
   flashcardDecks FlashcardDeck[]
-  quizzes        Quiz[]
   mindMaps       MindMap[]
-  roadmaps       Roadmap[]
   overview       NotebookOverview?
+  queries        Query[]
+  quizzes        Quiz[]
+  roadmaps       Roadmap[]
+  sources        Source[]
 }
 
 model Source {
-  id             String       @id @default(uuid())
-  notebookId     String
-  notebook       Notebook     @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  type           String       // PDF, TEXT, URL, YOUTUBE, VTT
-  originalUri    String
-  title          String?
-  status         String       @default("UPLOADING") // UPLOADING, EXTRACTING, CHUNKING, EMBEDDING, READY, FAILED
-  statusDetail   String?
-  rawContentRef  String?
-  createdAt      DateTime     @default(now())
-  indexedAt      DateTime?
-  chunks         Chunk[]
+  id            String    @id @default(uuid())
+  notebookId    String
+  type          String
+  originalUri   String
+  title         String?
+  status        String    @default("UPLOADING")
+  statusDetail  String?
+  rawContentRef String?
+  createdAt     DateTime  @default(now())
+  indexedAt     DateTime?
+  chunks        Chunk[]
+  notebook      Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 }
 
 model Chunk {
-  id          String   @id @default(uuid())
-  sourceId    String
-  source      Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  notebookId  String
-  text        String
-  chunkIndex  Int
-  location    String   // JSON string representing location per type
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  sourceId   String
+  notebookId String
+  text       String
+  chunkIndex Int
+  location   String
+  createdAt  DateTime @default(now())
+  source     Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
   @@index([sourceId])
 }
 
 model Query {
-  id          String   @id @default(uuid())
-  notebookId  String
-  notebook    Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  question    String
-  createdAt   DateTime @default(now())
-  answer      Answer?
+  id         String   @id @default(uuid())
+  notebookId String
+  question   String
+  createdAt  DateTime @default(now())
+  answer     Answer?
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 }
 
 model Answer {
-  id         String   @id @default(uuid())
-  queryId    String   @unique
-  query      Query    @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  text       String
-  citations  String   // JSON string: [{ chunkId, sourceId, snippet }]
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  queryId   String   @unique
+  text      String
+  citations String
+  createdAt DateTime @default(now())
+  query     Query    @relation(fields: [queryId], references: [id], onDelete: Cascade)
 }
 
 model FlashcardDeck {
-  id          String   @id @default(uuid())
-  notebookId  String
-  notebook    Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  sourceIds   String   // JSON array of source IDs used for generation
-  title       String
-  cards       String   // JSON array of { id, question, answer }
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  notebookId String
+  sourceIds  String
+  title      String
+  cards      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
 }
 
 model Quiz {
-  id          String   @id @default(uuid())
-  notebookId  String
-  notebook    Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  sourceIds   String   // JSON array of source IDs
-  title       String
-  questions   String   // JSON array of { id, prompt, options, correctOptionId }
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  notebookId String
+  sourceIds  String
+  title      String
+  questions  String
+  createdAt  DateTime @default(now())
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
 }
 
 model MindMap {
-  id          String   @id @default(uuid())
-  notebookId  String
-  notebook    Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  sourceIds   String   // JSON array of source IDs
-  title       String
-  root        String   // JSON representation of MindMapNode tree
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  notebookId String
+  sourceIds  String
+  title      String
+  root       String
+  createdAt  DateTime @default(now())
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 
   @@index([notebookId])
 }
@@ -109,26 +109,26 @@ model MindMap {
 model Roadmap {
   id         String         @id @default(uuid())
   notebookId String
-  notebook   Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  sourceId   String         // the youtube_playlist source id
+  sourceId   String
   title      String
-  stages     RoadmapStage[]
   createdAt  DateTime       @default(now())
+  notebook   Notebook       @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  stages     RoadmapStage[]
 
   @@index([notebookId])
 }
 
 model RoadmapStage {
-  id               String   @id @default(uuid())
+  id               String  @id @default(uuid())
   roadmapId        String
-  roadmap          Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
   order            Int
   title            String
   description      String
   estimatedMinutes Int
-  outcomes         String   // JSON array of strings
-  videoIds         String   // JSON array of strings
-  completed        Boolean  @default(false)
+  outcomes         String
+  videoIds         String
+  completed        Boolean @default(false)
+  roadmap          Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
 
   @@index([roadmapId])
 }
@@ -136,10 +136,10 @@ model RoadmapStage {
 model NotebookOverview {
   id                 String   @id @default(uuid())
   notebookId         String   @unique
-  notebook           Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
-  sourceIds          String   // JSON array of strings
+  sourceIds          String
   title              String
   summaryMarkdown    String
-  suggestedQuestions String   // JSON array of exactly 3 strings
+  suggestedQuestions String
   generatedAt        DateTime @default(now())
+  notebook           Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
 }

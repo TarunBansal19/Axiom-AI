@@ -175,11 +175,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={onOpenAddSource}
                 disabled={!activeNotebookId}
                 variant="outline"
-                className="w-full h-9 text-xs gap-1.5"
+                className="w-full h-8 text-xs gap-1.5 border-border hover:bg-accent text-foreground font-medium"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add sources
               </Button>
+              <p className="text-[10px] text-muted-foreground text-center pt-1.5 font-mono">
+                or drop PDF / text files
+              </p>
             </div>
 
             {/* Source list */}

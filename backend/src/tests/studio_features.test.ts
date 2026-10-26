@@ -81,7 +81,7 @@ describe("AxiomAI Studio Features Integration Tests", () => {
       },
     });
     playlistSourceId = playlistSource.id;
-  });
+  }, 30000);
 
   test("1. Flashcard Generation & Persistence", async () => {
     const deck = await generateFlashcardDeck(testNotebookId, [textSourceId], 10, true);

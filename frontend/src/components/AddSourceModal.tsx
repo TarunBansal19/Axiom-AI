@@ -42,7 +42,7 @@ export const AddSourceModal: React.FC<AddSourceModalProps> = ({
       type: "YOUTUBE_PLAYLIST",
       title: "YouTube Playlist",
       desc: "Import multiple videos to generate a Roadmap",
-      icon: <Youtube className="w-6 h-6 text-purple-500" />,
+      icon: <Youtube className="w-6 h-6 text-rose-400" />,
     },
     {
       type: "URL",

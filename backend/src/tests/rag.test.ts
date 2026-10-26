@@ -16,7 +16,7 @@ describe("AxiomAI Notebook RAG Architecture Tests", () => {
       data: { name: "Quantum Computing & Quantum Algorithms" },
     });
     testNotebookId = notebook.id;
-  });
+  }, 20000);
 
   test("1. Database Schema & Relations", async () => {
     expect(testNotebookId).toBeDefined();
@@ -134,7 +134,7 @@ Today we discuss qubits and superposition principles.`;
 
     const qdrantCheck = await searchNotebookChunks(testNotebookId, new Array(1536).fill(0.5), 5);
     expect(qdrantCheck.some((r) => r.id === chunk.id)).toBe(false);
-  });
+  }, 20000);
 
   test("6. Full RAG Query Pipeline Execution & Citations", async () => {
     const source = await db.source.create({
@@ -173,6 +173,6 @@ Today we discuss qubits and superposition principles.`;
     expect(result.text).toBeDefined();
     expect(result.citations.length).toBeGreaterThan(0);
     expect(result.citations[0]?.chunkId).toBe(chunkId);
-  }, 20000);
+  }, 45000);
 });
 

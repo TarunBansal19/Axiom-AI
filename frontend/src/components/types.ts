@@ -20,6 +20,7 @@ export interface Citation {
   chunkId: string;
   sourceId: string;
   snippet: string;
+  sourceTitle?: string;
 }
 
 export interface Answer {

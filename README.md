@@ -45,8 +45,8 @@ AxiomAI is a powerful, AI-driven learning and research workspace. By combining a
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/AxiomAI.git
-cd AxiomAI
+git clone https://github.com/TarunBansal19/Axiom-AI.git
+cd Axiom-AI
 ```
 
 ### 2. Start Infrastructure
@@ -56,25 +56,28 @@ docker-compose up -d
 ```
 
 ### 3. Setup Environment Variables
-You will need to create two environment files.
+Copy the provided `.env.example` templates in both folders:
 
 **Backend (`backend/.env`)**:
 ```env
 PORT=3001
 NODE_ENV=development
 
-# Databases
-DATABASE_URL="postgresql://user:pass@host/db"
-REDIS_HOST="127.0.0.1"
-REDIS_PORT=6379
+# Neon / PostgreSQL Database
+DATABASE_URL="postgresql://user:password@host/neondb?sslmode=require&connect_timeout=30&pool_timeout=30&connection_limit=20"
+
+# LLM & Embeddings (OpenAI compatible)
+AICREDITS_API_KEY="your_api_key"
+AICREDITS_BASE_URL="https://api.aicredits.in/v1"
+
+# Vector Database (Qdrant)
 QDRANT_URL="http://localhost:6333"
 QDRANT_API_KEY=""
 
-# API Keys
-YOUTUBE_API_KEY="your_youtube_api_key"
-OPENAI_API_KEY="your_openai_api_key"
+# BullMQ Redis Queue
+REDIS_URL="redis://127.0.0.1:6379"
 
-# AWS S3 Blob Storage
+# AWS S3 Storage
 AWS_ACCESS_KEY_ID="your_aws_access_key"
 AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
 AWS_REGION="us-east-1"

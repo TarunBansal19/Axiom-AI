@@ -12,7 +12,6 @@ import {
   FileQuestion,
   Network,
   Route,
-  Mic,
   RefreshCw,
   CheckCircle2,
 } from "lucide-react";
@@ -136,52 +135,42 @@ export const StudioPanel: React.FC<StudioPanelProps> = ({
           <div className="grid grid-cols-2 gap-2">
             {/* Flashcards */}
             <StudioFeatureCard
-              icon={<BrainCircuit className="w-5 h-5" />}
+              icon={<BrainCircuit className="w-4 h-4 text-zinc-300" />}
               label="Flashcards"
               onClick={() => handleGenerate("flashcards")}
               disabled={!hasReadySources}
               disabledReason="Select at least one source"
-              colorClass="text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30"
+              colorClass="hover:bg-accent/60 border-border"
             />
 
             {/* Quiz */}
             <StudioFeatureCard
-              icon={<FileQuestion className="w-5 h-5" />}
+              icon={<FileQuestion className="w-4 h-4 text-zinc-300" />}
               label="Quiz"
               onClick={() => handleGenerate("quiz")}
               disabled={!hasReadySources}
               disabledReason="Select at least one source"
-              colorClass="text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30"
+              colorClass="hover:bg-accent/60 border-border"
             />
 
             {/* Mind Map */}
             <StudioFeatureCard
-              icon={<Network className="w-5 h-5" />}
+              icon={<Network className="w-4 h-4 text-zinc-300" />}
               label="Mind Map"
               onClick={() => handleGenerate("mindmap")}
               disabled={!hasReadySources}
               disabledReason="Select at least one source"
-              colorClass="text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30"
+              colorClass="hover:bg-accent/60 border-border"
             />
 
             {/* Roadmap */}
             <StudioFeatureCard
-              icon={<Route className="w-5 h-5" />}
+              icon={<Route className="w-4 h-4 text-zinc-300" />}
               label="Roadmap"
               onClick={() => handleGenerate("roadmap")}
               disabled={!playlistSource}
               disabledReason="Add a YouTube playlist source"
-              colorClass="text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/30"
-            />
-
-            {/* Podcast (Coming Soon) */}
-            <StudioFeatureCard
-              icon={<Mic className="w-5 h-5" />}
-              label="Podcast"
-              badge="Coming Soon"
-              disabled={true}
-              disabledReason="This feature is currently in development"
-              colorClass="text-pink-400 hover:bg-pink-500/10 hover:border-pink-500/30"
+              colorClass="hover:bg-accent/60 border-border"
             />
           </div>
 

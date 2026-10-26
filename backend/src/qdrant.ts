@@ -17,6 +17,7 @@ interface VectorPoint {
 export const qdrantClient = new QdrantClient({
   url: QDRANT_URL,
   ...(QDRANT_API_KEY ? { apiKey: QDRANT_API_KEY } : {}),
+  checkCompatibility: false,
 });
 
 export async function ensureCollection(): Promise<void> {

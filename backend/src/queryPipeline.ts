@@ -155,8 +155,6 @@ export async function runQueryPipeline(notebookId: string, question: string): Pr
     }
 
     if (isGrounded || attempts > maxAttempts) {
-      finalAnswerText = draftedAnswer;
-
       // Extract cited chunk IDs from draftedAnswer
       const citedMatches = Array.from(draftedAnswer.matchAll(/\[CID:([a-zA-Z0-9_-]+)\]/g)).map(m => m[1]);
       const citedSet = new Set(citedMatches);
@@ -167,8 +165,19 @@ export async function runQueryPipeline(notebookId: string, question: string): Pr
       finalCitations = chunksToCite.map((c) => ({
         chunkId: c.id,
         sourceId: c.sourceId,
+        sourceTitle: c.sourceTitle,
         snippet: c.text.slice(0, 200) + (c.text.length > 200 ? "..." : ""),
       }));
+
+      // Map cited chunk IDs to 1-based indices in finalAnswerText
+      const chunkIdToIndex = new Map<string, number>();
+      chunksToCite.forEach((c, i) => chunkIdToIndex.set(c.id, i + 1));
+
+      finalAnswerText = draftedAnswer.replace(/\[CID:([a-zA-Z0-9_-]+)\]/g, (match, cid) => {
+        const idx = chunkIdToIndex.get(cid);
+        return idx !== undefined ? `[${idx}]` : "";
+      });
+
       break;
     } else {
       currentQuestion = `Detailed clarification regarding ${question}`;
